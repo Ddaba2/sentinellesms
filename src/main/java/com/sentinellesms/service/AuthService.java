@@ -11,6 +11,7 @@ import com.sentinellesms.repository.RefreshTokenRepository;
 import com.sentinellesms.repository.RoleRepository;
 import com.sentinellesms.repository.UserRepository;
 import com.sentinellesms.security.JwtService;
+import com.sentinellesms.security.Roles;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -29,7 +30,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private static final String ROLE_USER = "ROLE_USER";
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
@@ -37,6 +37,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuditService auditService;
 
     @Value("${sentinellesms.jwt.refresh-token-expiration-ms}")
     private long refreshTokenExpirationMs;
@@ -50,8 +51,8 @@ public class AuthService {
             throw new BadRequestException("Cet email est déjà utilisé");
         }
 
-        Role userRole = roleRepository.findByName(ROLE_USER)
-                .orElseGet(() -> roleRepository.save(new Role(null, ROLE_USER)));
+        Role userRole = roleRepository.findByName(Roles.USER)
+                .orElseGet(() -> roleRepository.save(new Role(null, Roles.USER)));
 
         Set<Role> roles = new HashSet<>();
         roles.add(userRole);
@@ -72,13 +73,18 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByUsername(request.getUsernameOrEmail())
                 .or(() -> userRepository.findByEmail(request.getUsernameOrEmail()))
-                .orElseThrow(() -> new BadCredentialsException("Identifiants invalides"));
+                .orElse(null);
 
-        if (!user.isEnabled() || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        if (user == null || !user.isEnabled()
+                || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            auditService.log("LOGIN_FAILED", "User", user != null ? user.getId().toString() : null,
+                    request.getUsernameOrEmail());
             throw new BadCredentialsException("Identifiants invalides");
         }
 
-        return buildAuthResponse(user);
+        AuthResponse response = buildAuthResponse(user);
+        auditService.log("LOGIN_SUCCESS", "User", user.getId().toString(), user.getUsername());
+        return response;
     }
 
     @Transactional

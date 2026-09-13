@@ -17,10 +17,11 @@ public class OpenApiConfig {
     public OpenAPI sentinelleSmsOpenApi() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("SentinelleSMS API")
-                        .description("Backend de détection embarquée des fraudes Mobile Money par IA — "
-                                + "réception des signalements anonymisés, agrégation et distribution des mises à jour du modèle.")
-                        .version("v1"))
+                        .title("Sentinelle Mali API")
+                        .description("API Sentinelle Mali — analyse assistée, vérification liens/numéros, "
+                                + "signalements anonymisés, moteur de règles, contenus FR et back-office "
+                                + "(rôles, modération, statistiques, audit). Bambara/audio hors scope.")
+                        .version("v2"))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_SCHEME))
                 .components(new Components()
                         .addSecuritySchemes(BEARER_SCHEME, new SecurityScheme()

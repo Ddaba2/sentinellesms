@@ -15,22 +15,15 @@ import java.util.UUID;
 public class FraudPatternResponse {
 
     private UUID id;
-
     private String label;
-
     private String keywords;
-
     private String language;
-
     private String category;
-
     private String riskLevel;
-
+    private int riskScore;
     private String description;
-
+    private String signalCodes;
     private boolean active;
-
     private LocalDateTime createdAt;
-
     private LocalDateTime updatedAt;
 }

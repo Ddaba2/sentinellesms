@@ -5,6 +5,7 @@ import com.sentinellesms.dto.pattern.FraudPatternResponse;
 import com.sentinellesms.entity.FraudPattern;
 import com.sentinellesms.exception.ResourceNotFoundException;
 import com.sentinellesms.repository.FraudPatternRepository;
+import com.sentinellesms.util.RiskScoreBands;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 public class PatternService {
 
     private final FraudPatternRepository fraudPatternRepository;
+    private final AuditService auditService;
 
     public List<FraudPatternResponse> listActive(String language) {
         List<FraudPattern> patterns = (language == null || language.isBlank())
@@ -34,14 +36,18 @@ public class PatternService {
     public FraudPatternResponse create(FraudPatternRequest request) {
         FraudPattern pattern = new FraudPattern();
         applyRequest(pattern, request);
-        return toResponse(fraudPatternRepository.save(pattern));
+        pattern = fraudPatternRepository.save(pattern);
+        auditService.log("PATTERN_CREATE", "FraudPattern", pattern.getId().toString(), pattern.getLabel());
+        return toResponse(pattern);
     }
 
     public FraudPatternResponse update(UUID id, FraudPatternRequest request) {
         FraudPattern pattern = fraudPatternRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Motif de fraude introuvable: " + id));
         applyRequest(pattern, request);
-        return toResponse(fraudPatternRepository.save(pattern));
+        pattern = fraudPatternRepository.save(pattern);
+        auditService.log("PATTERN_UPDATE", "FraudPattern", id.toString(), pattern.getLabel());
+        return toResponse(pattern);
     }
 
     public void delete(UUID id) {
@@ -49,6 +55,7 @@ public class PatternService {
             throw new ResourceNotFoundException("Motif de fraude introuvable: " + id);
         }
         fraudPatternRepository.deleteById(id);
+        auditService.log("PATTERN_DELETE", "FraudPattern", id.toString(), null);
     }
 
     private void applyRequest(FraudPattern pattern, FraudPatternRequest request) {
@@ -57,7 +64,11 @@ public class PatternService {
         pattern.setLanguage(request.getLanguage());
         pattern.setCategory(request.getCategory());
         pattern.setRiskLevel(request.getRiskLevel());
+        pattern.setRiskScore(request.getRiskScore() != null
+                ? RiskScoreBands.clamp(request.getRiskScore())
+                : RiskScoreBands.fromRiskLevel(request.getRiskLevel()));
         pattern.setDescription(request.getDescription());
+        pattern.setSignalCodes(request.getSignalCodes());
         pattern.setActive(request.isActive());
     }
 
@@ -69,7 +80,9 @@ public class PatternService {
                 .language(pattern.getLanguage())
                 .category(pattern.getCategory())
                 .riskLevel(pattern.getRiskLevel())
+                .riskScore(pattern.getRiskScore())
                 .description(pattern.getDescription())
+                .signalCodes(pattern.getSignalCodes())
                 .active(pattern.isActive())
                 .createdAt(pattern.getCreatedAt())
                 .updatedAt(pattern.getUpdatedAt())

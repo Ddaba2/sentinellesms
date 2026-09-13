@@ -13,4 +13,6 @@ public interface FraudPatternRepository extends JpaRepository<FraudPattern, UUID
     List<FraudPattern> findByActiveTrue();
 
     List<FraudPattern> findByActiveTrueAndLanguage(String language);
+
+    long countByActiveTrue();
 }

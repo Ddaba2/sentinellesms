@@ -35,8 +35,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             new Route("POST", "/api/auth/login"),
             new Route("POST", "/api/auth/refresh"),
             new Route("POST", "/api/reports"),
+            new Route("POST", "/api/analyze"),
+            new Route("POST", "/api/links/check"),
+            new Route("GET", "/api/phones/lookup"),
             new Route("GET", "/api/patterns/sync"),
-            new Route("GET", "/api/model/latest")
+            new Route("GET", "/api/model/latest"),
+            new Route("GET", "/api/content/public")
     );
 
     private final int capacity;
